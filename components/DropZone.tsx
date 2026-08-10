@@ -1,5 +1,3 @@
-'use client';
-
 import { type DragEvent, type KeyboardEvent, useRef, useState } from 'react';
 
 import { ACCEPTED_EXTENSIONS, MAX_FILE_SIZE, MAX_FILES } from '@/lib/constants';

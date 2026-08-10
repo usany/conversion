@@ -24,4 +24,6 @@ __pycache__/
 dist/
 storybook-static/
 node_modules/
-.next/
+
+# Deno
+deno.lock

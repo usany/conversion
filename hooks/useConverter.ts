@@ -1,5 +1,3 @@
-'use client';
-
 import { useCallback, useState } from 'react';
 
 import { REJECTION_MESSAGES } from '@/lib/constants';

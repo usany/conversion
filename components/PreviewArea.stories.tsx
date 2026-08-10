@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/nextjs-vite';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 
 import { PreviewArea } from './PreviewArea';
@@ -20,7 +20,7 @@ const meta = {
         component: [
           'Renders `renderMarkdown(file.content)` through `dangerouslySetInnerHTML`. Testid `preview-area`.',
           '',
-          '⚠️ **Security** — `renderMarkdown` must sanitize (`isomorphic-dompurify` on the client)',
+          '⚠️ **Security** — `renderMarkdown` must sanitize (`dompurify` on the client)',
           '*before* the HTML reaches this component. The server uses `sanitize-html` on the same',
           'markdown, so preview and PDF stay in sync. See the `SanitizedHtml` story.',
           '',

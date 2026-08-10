@@ -4,13 +4,11 @@
   "files": {
     "includes": [
       "**",
-      "!.next",
       "!storybook-static",
       "!node_modules",
-      "!pnpm-lock.yaml",
+      "!deno.lock",
       "!**/*.css",
-      "!library.*",
-      "!next-env.d.ts"
+      "!library.*"
     ]
   },
   "formatter": {

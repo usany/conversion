@@ -1,14 +1,11 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { expect, type Locator, type Page } from '@playwright/test';
 
-// `pnpm test:e2e` always runs from the package root, which keeps this correct
-// under both the CJS and ESM loaders Playwright may pick for .ts files.
-export const REPO_ROOT = process.cwd();
-export const FIXTURES = path.join(REPO_ROOT, 'tests/e2e/fixtures');
+// `deno task test:e2e` always runs from the repo root.
+export const REPO_ROOT = Deno.cwd();
+export const FIXTURES = `${REPO_ROOT}/tests/e2e/fixtures`;
 
-export const fixture = (name: string) => path.join(FIXTURES, name);
-export const repoFile = (name: string) => path.join(REPO_ROOT, name);
+export const fixture = (name: string) => `${FIXTURES}/${name}`;
+export const repoFile = (name: string) => `${REPO_ROOT}/${name}`;
 
 export const dropzone = (page: Page) => page.getByTestId('dropzone');
 export const fileInput = (page: Page) => page.getByTestId('file-input');
@@ -96,7 +93,7 @@ export async function dropOntoZone(page: Page, files: { name: string; content: s
 
 export interface ConvertedPdf {
   filename: string;
-  bytes: Buffer;
+  bytes: Uint8Array;
   pages: number;
 }
 
@@ -104,8 +101,8 @@ export interface ConvertedPdf {
  * Chromium writes the page tree with compressed object streams, so `/Type /Page`
  * never appears in plaintext — the page-tree `/Count` does, exactly once.
  */
-export function pdfPageCount(bytes: Buffer): number {
-  const match = bytes.toString('latin1').match(/\/Count\s+(\d+)/);
+export function pdfPageCount(bytes: Uint8Array): number {
+  const match = new TextDecoder('latin1').decode(bytes).match(/\/Count\s+(\d+)/);
   if (!match) throw new Error('no /Count in PDF — page tree not found');
   return Number(match[1]);
 }
@@ -117,7 +114,7 @@ export async function convertAndDownload(page: Page): Promise<ConvertedPdf> {
 
   const file = await download.path();
   if (!file) throw new Error('download produced no file');
-  const bytes = await readFile(file);
+  const bytes = await Deno.readFile(file);
 
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
   return { filename: download.suggestedFilename(), bytes, pages: pdfPageCount(bytes) };

@@ -1,5 +1,3 @@
-'use client';
-
 import { useConverter } from '@/hooks/useConverter';
 import { ConvertButton } from './ConvertButton';
 import { DropZone } from './DropZone';

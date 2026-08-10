@@ -3,9 +3,9 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: !!Deno.env.get('CI'),
+  retries: Deno.env.get('CI') ? 2 : 0,
+  workers: Deno.env.get('CI') ? 1 : undefined,
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',
@@ -13,9 +13,9 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'pnpm build && pnpm start',
+    command: 'deno task build && deno task preview',
     port: 3000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !Deno.env.get('CI'),
     timeout: 180_000,
   },
 });
