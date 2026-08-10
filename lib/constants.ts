@@ -14,5 +14,3 @@ export const REJECTION_MESSAGES: Record<RejectionReason, string> = {
   'too-many-files': 'Exceeds the 50 file limit',
   'read-error': 'Could not be read',
 };
-
-export const CONVERT_ENDPOINT = '/api/convert';

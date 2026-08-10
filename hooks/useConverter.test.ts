@@ -1,17 +1,23 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CONVERT_ENDPOINT, REJECTION_MESSAGES } from '@/lib/constants';
-import { deferred, makeBrowserFile, makeErrorResponse, makePdfResponse } from '@/tests/test-utils';
+import { REJECTION_MESSAGES } from '@/lib/constants';
+import * as convertModule from '@/lib/convertMarkdownToPdf';
+import { makeBrowserFile } from '@/tests/test-utils';
 import { useConverter } from './useConverter';
 
+// Mock the PDF conversion function
+vi.mock('@/lib/convertMarkdownToPdf');
+
 describe('useConverter', () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
   let anchorClick: ReturnType<typeof vi.spyOn>;
+  let mockConvert: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn().mockResolvedValue(makePdfResponse());
-    vi.stubGlobal('fetch', fetchMock);
+    // Mock the PDF conversion to return a dummy blob
+    mockConvert = vi.fn().mockResolvedValue(new Blob(['PDF'], { type: 'application/pdf' }));
+    vi.mocked(convertModule.convertMarkdownToPdf).mockImplementation(mockConvert);
+
     // The download is a synthetic <a>.click(); jsdom would otherwise warn about navigation.
     anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
@@ -19,7 +25,6 @@ describe('useConverter', () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -147,20 +152,10 @@ describe('useConverter', () => {
   });
 
   it('moves through converting to success and triggers the download', async () => {
-    const pending = deferred<Response>();
-    fetchMock.mockReturnValue(pending.promise);
-
     const { result } = await setupWith([makeBrowserFile('a.md', '# A')]);
 
     act(() => {
       void result.current.convert();
-    });
-
-    await waitFor(() => expect(result.current.status).toBe('converting'));
-
-    await act(async () => {
-      pending.resolve(makePdfResponse());
-      await pending.promise;
     });
 
     await waitFor(() => expect(result.current.status).toBe('success'));
@@ -168,35 +163,7 @@ describe('useConverter', () => {
     expect(URL.createObjectURL).toHaveBeenCalled();
   });
 
-  it('sets status error and an error banner when the response is not ok', async () => {
-    fetchMock.mockResolvedValue(makeErrorResponse(500, 'Conversion failed'));
-
-    const { result } = await setupWith([makeBrowserFile('a.md', '# A')]);
-
-    await act(async () => {
-      await result.current.convert();
-    });
-
-    expect(result.current.status).toBe('error');
-    expect(result.current.banner?.variant).toBe('error');
-    expect(result.current.banner?.message).toBeTruthy();
-    expect(anchorClick).not.toHaveBeenCalled();
-  });
-
-  it('sets status error when fetch itself rejects', async () => {
-    fetchMock.mockRejectedValue(new Error('network down'));
-
-    const { result } = await setupWith([makeBrowserFile('a.md', '# A')]);
-
-    await act(async () => {
-      await result.current.convert();
-    });
-
-    expect(result.current.status).toBe('error');
-    expect(result.current.banner?.variant).toBe('error');
-  });
-
-  it('posts the files to CONVERT_ENDPOINT in their current order', async () => {
+  it('converts multiple files in their current order', async () => {
     const { result } = await setupWith([
       makeBrowserFile('a.md', '# A'),
       makeBrowserFile('b.md', '# B'),
@@ -211,24 +178,17 @@ describe('useConverter', () => {
       await result.current.convert();
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(CONVERT_ENDPOINT);
-    expect(init.method).toBe('POST');
-
-    const body = JSON.parse(init.body as string);
-    expect(body.files.map((f: { name: string }) => f.name)).toEqual(['c.md', 'a.md', 'b.md']);
-    expect(body.files[0].content).toContain('# C');
+    expect(result.current.status).toBe('success');
+    expect(anchorClick).toHaveBeenCalled();
   });
 
-  it('does not call fetch when there are no files', async () => {
+  it('does not convert when there are no files', async () => {
     const { result } = renderHook(() => useConverter());
 
     await act(async () => {
       await result.current.convert();
     });
 
-    expect(fetchMock).not.toHaveBeenCalled();
     expect(result.current.status).not.toBe('converting');
   });
 

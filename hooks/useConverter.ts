@@ -2,7 +2,8 @@
 
 import { useCallback, useState } from 'react';
 
-import { CONVERT_ENDPOINT, REJECTION_MESSAGES } from '@/lib/constants';
+import { REJECTION_MESSAGES } from '@/lib/constants';
+import { convertMarkdownToPdf } from '@/lib/convertMarkdownToPdf';
 import { readMarkdownFiles } from '@/lib/readFiles';
 import { reorderFiles } from '@/lib/reorder';
 import type { BannerState, ConversionStatus, MarkdownFile, RejectedFile } from '@/lib/types';
@@ -35,16 +36,6 @@ function triggerDownload(blob: Blob) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-}
-
-async function readErrorMessage(response: Response): Promise<string> {
-  try {
-    const body = (await response.json()) as { error?: string };
-    if (body?.error) return body.error;
-  } catch {
-    // Fall through to the status-based message.
-  }
-  return `Conversion failed (${response.status}).`;
 }
 
 export function useConverter(): UseConverter {
@@ -110,17 +101,12 @@ export function useConverter(): UseConverter {
     setBanner(null);
 
     try {
-      const response = await fetch(CONVERT_ENDPOINT, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          files: files.map((file) => ({ name: file.name, content: file.content })),
-        }),
-      });
+      // Client-side conversion using html2pdf
+      const pdfBlob = await convertMarkdownToPdf(
+        files.map((file) => ({ name: file.name, content: file.content })),
+      );
 
-      if (!response.ok) throw new Error(await readErrorMessage(response));
-
-      triggerDownload(await response.blob());
+      triggerDownload(pdfBlob);
       setStatus('success');
       setBanner({
         variant: 'success',
