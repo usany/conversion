@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+dist
+storybook-static
+.env
+.env.local
+.DS_Store
+*.log
+tests
+.storybook
+playwright.config.ts
+vitest.config.ts
+*.md
